@@ -436,42 +436,30 @@ main () {
 
             if (event.type == SDL_KEYDOWN) {
                 switch (event.key.keysym.sym) {
-                case SDLK_UP:
-                    score += apply_gravity_to_board(board, UP);
-                    insert_two_randomly(board);
+                    case SDLK_UP:
+                        score += apply_gravity_to_board(board, UP);
+                        insert_two_randomly(board);
+                        break;
 
-                    SDL_RenderClear(renderer);
-                    draw_board(renderer, tiles, board);
-                    SDL_RenderPresent(renderer);
-                    break;
-
-                case SDLK_DOWN:
-                    score += apply_gravity_to_board(board, DOWN);
-                    insert_two_randomly(board);
-
-                    SDL_RenderClear(renderer);
-                    draw_board(renderer, tiles, board);
-                    SDL_RenderPresent(renderer);
-                    break;
+                    case SDLK_DOWN:
+                        score += apply_gravity_to_board(board, DOWN);
+                        insert_two_randomly(board);
+                        break;
                     
-                case SDLK_LEFT:
-                    score += apply_gravity_to_board(board, LEFT);
-                    insert_two_randomly(board);
+                    case SDLK_LEFT:
+                        score += apply_gravity_to_board(board, LEFT);
+                        insert_two_randomly(board);
+                        break;
 
-                    SDL_RenderClear(renderer);
-                    draw_board(renderer, tiles, board);
-                    SDL_RenderPresent(renderer);
-                    break;
-
-                case SDLK_RIGHT:
-                    score += apply_gravity_to_board(board, RIGHT);
-                    insert_two_randomly(board);
-
-                    SDL_RenderClear(renderer);
-                    draw_board(renderer, tiles, board);
-                    SDL_RenderPresent(renderer);
-                    break;
+                    case SDLK_RIGHT:
+                        score += apply_gravity_to_board(board, RIGHT);
+                        insert_two_randomly(board);
+                        break;
                 }
+
+                SDL_RenderClear(renderer);
+                draw_board(renderer, tiles, board);
+                SDL_RenderPresent(renderer);
             }
         }
         if (quit) break;
