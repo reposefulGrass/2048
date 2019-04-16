@@ -4,8 +4,12 @@
 #include <stdbool.h>
 #include <string.h>
 #include <time.h>
+#include <math.h>
 
-#define BOARD_SIZE 4
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
+
+#define BOARD_SIZE 3
 #define CELL unsigned int *
 
 typedef enum { ROW, COLUMN } line_type_t; 
@@ -14,7 +18,6 @@ typedef enum { UP, RIGHT, DOWN, LEFT } direction_t;
 
 CELL *
 create_board () {
-    // a (BOARD_SIZE x BOARD_SIZE) board where each cell is a 'unsigned int *'
     CELL *board = (CELL *) malloc(sizeof(CELL) * BOARD_SIZE * BOARD_SIZE);
 
     for (int y = 0; y < BOARD_SIZE; y++) {
@@ -22,7 +25,7 @@ create_board () {
             CELL temp = (CELL) malloc(sizeof(unsigned int));
             *temp = 0;
 
-            board[(4 * y) + x] = temp;
+            board[(BOARD_SIZE * y) + x] = temp;
         }
     }
 
@@ -34,8 +37,8 @@ void
 destroy_board (CELL *board) {
     for (int y = 0; y < BOARD_SIZE; y++) {
         for (int x = 0; x < BOARD_SIZE; x++) {
-            if (board[(4 * y) + x] != NULL) {
-                free(board[(4 * y) + x]);
+            if (board[(BOARD_SIZE * y) + x] != NULL) {
+                free(board[(BOARD_SIZE * y) + x]);
             } 
         }
     }
@@ -45,37 +48,18 @@ destroy_board (CELL *board) {
 
 
 void
-print_board (CELL *board) {
-    for (int y = 0; y < BOARD_SIZE; y++) {
-        for (int x = 0; x < BOARD_SIZE; x++) {
-            CELL cell = board[(BOARD_SIZE * y) + x];
-            if (*cell != 0) {
-                printf("%5d", *cell); 
-            }
-            else {
-                printf("%5s", "_");
-            }
-        }
-        putchar('\n');
-    }
-}
-
-
-void
 retrieve_line (CELL *board, line_type_t line, unsigned int nth_line, CELL *ret) {
     switch (line) {
         case ROW:
-            *(ret + 0)  = board[(BOARD_SIZE * nth_line) + 0];
-            *(ret + 1)  = board[(BOARD_SIZE * nth_line) + 1];
-            *(ret + 2)  = board[(BOARD_SIZE * nth_line) + 2];
-            *(ret + 3)  = board[(BOARD_SIZE * nth_line) + 3];
+            for (int i = 0; i < BOARD_SIZE; i++) {
+                *(ret + i) = board[(BOARD_SIZE * nth_line) + i];
+            }
             break;
 
         case COLUMN:
-            *(ret + 0)  = board[nth_line + BOARD_SIZE * 0];
-            *(ret + 1)  = board[nth_line + BOARD_SIZE * 1];
-            *(ret + 2)  = board[nth_line + BOARD_SIZE * 2];
-            *(ret + 3)  = board[nth_line + BOARD_SIZE * 3];
+            for (int i = 0; i < BOARD_SIZE; i++) {
+                *(ret + i) = board[nth_line + (BOARD_SIZE * i)];
+            }
             break;
     }
 }
@@ -161,6 +145,8 @@ fusion (CELL *line, direction_t dir, int pos) {
             return cell_combine(line[pos], line[pos + 1]);
         }
     }
+
+    return 0;
 }
 
 
@@ -180,6 +166,10 @@ apply (int (*p_func)(), CELL *line, direction_t dir) {
                 score += (*p_func)(line, DOWN, i);
             }
             break;
+
+        default:
+            fprintf(stderr, "Invalid direction. UP & DOWN only!\n");
+            exit(EXIT_FAILURE);
     }
 
     return score;
@@ -191,6 +181,30 @@ apply_gravity_to_line (CELL *line, direction_t dir) {
     apply(gravity, line, dir);
     int score = apply(fusion, line, dir);
     apply(gravity, line, dir);
+
+    return score;
+}
+
+
+int
+apply_gravity_to_board (CELL *board, direction_t dir) {
+    CELL line[4];
+    int score = 0;
+ 
+    direction_t line_direction; // The direction to apply to the line
+    line_type_t line_type;      // Which line type should we use (col or row) 
+
+    switch (dir) {
+        case UP:    line_direction = DOWN;  line_type = COLUMN; break;
+        case DOWN:  line_direction = UP;    line_type = COLUMN; break;
+        case LEFT:  line_direction = DOWN;  line_type = ROW;    break;
+        case RIGHT: line_direction = UP;    line_type = ROW;    break;
+    }
+
+    for (int i = 0; i < BOARD_SIZE; i++) {
+        retrieve_line(board, line_type, i, line);
+        score += apply_gravity_to_line(line, line_direction);
+    }
 
     return score;
 }
@@ -243,29 +257,6 @@ game_won (CELL *board) {
 }
 
 
-int
-apply_gravity_to_board (CELL *board, direction_t dir) {
-    CELL line[4];
-    int score = 0;
- 
-    direction_t line_direction; // The direction to apply to the line
-    line_type_t line_type;      // Which lines should we use (col or row) 
-
-    switch (dir) {
-        case UP:    line_direction = DOWN;  line_type = COLUMN; break;
-        case DOWN:  line_direction = UP;    line_type = COLUMN; break;
-        case LEFT:  line_direction = DOWN;  line_type = ROW;    break;
-        case RIGHT: line_direction = UP;    line_type = ROW;    break;
-    }
-
-    for (int i = 0; i < BOARD_SIZE; i++) {
-        retrieve_line(board, line_type, i, line);
-        score += apply_gravity_to_line(line, line_direction);
-    }
-
-    return score;
-}
-
 void
 insert_two_randomly (CELL *board) {
     CELL list[BOARD_SIZE * BOARD_SIZE] = {NULL};
@@ -288,86 +279,222 @@ insert_two_randomly (CELL *board) {
     *picked = 2;
 }
 
-void
-clear_screen () {
-    printf("\x1b[2J");
+
+double log2 (double x) {
+    return log(x) / log(2);
 }
 
-void
-move_cursor_to_pos (int row, int col) {
-    printf("\x1b[%d;%dH", row, col);
+
+SDL_Texture *
+load_texture (SDL_Renderer *renderer, char *path) {
+    SDL_Surface *surface = IMG_Load(path);
+    if (surface == NULL) {
+        fprintf(stderr, "Unable to load surface %s!\n", path);
+        return NULL;
+    }
+
+    SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
+    if (texture == NULL) {
+        fprintf(stderr, "Unable to load texture: %s\n", SDL_GetError());
+        return NULL;
+    }
+
+    SDL_FreeSurface(surface);
+
+    return texture;
 }
 
-typedef enum { VALID, INVALID }
-    move_t;
+
+SDL_Texture **
+load_tiles (SDL_Renderer *renderer) {
+    SDL_Texture **tiles = (SDL_Texture **) malloc(sizeof(SDL_Surface *) * 11);
+    char generic_path[24];
+
+    for (int i = 0; i < 11; i++) {
+        snprintf(generic_path, 24, "./resources/tile_%d.bmp", i);
+        tiles[i] = load_texture(renderer, generic_path);
+    }
+
+    return tiles;
+}
+
+
+void
+destroy_tiles (SDL_Texture **tiles) {
+    for (int i = 0; i < 11; i++) {
+        SDL_DestroyTexture(tiles[i]);
+    }
+}
+
+
+void
+draw_score (unsigned int score) {
+
+}
+
+
+void
+draw_board (
+    SDL_Renderer *renderer,
+    SDL_Texture **tiles, 
+    CELL *board
+) {
+    for (int x = 0; x < BOARD_SIZE; x++) {
+        for (int y = 0; y < BOARD_SIZE; y++) {
+            int x_pos = x * 170 + 20;
+            int y_pos = y * 170 + 130;
+
+            SDL_Rect src_area;
+            src_area.x = 0;
+            src_area.y = 0;
+            src_area.w = 150;
+            src_area.h = 150;
+
+            SDL_Rect dest_area;
+            dest_area.x = x_pos;
+            dest_area.y = y_pos;
+            dest_area.w = 150;
+            dest_area.h = 150;
+
+            CELL cell = board[y * BOARD_SIZE + x];
+            if (*cell != 0) {
+                SDL_Texture *tile_selected = tiles[((int) log2(*cell)) - 1];
+                SDL_RenderCopy(renderer, tile_selected, &src_area, &dest_area);
+            }
+        }
+    }
+}
+
+
+void
+initialize_sdl (SDL_Window **window, SDL_Renderer **renderer) {
+    if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+        SDL_Log("Unable to initialize SDL: %s", SDL_GetError());
+        exit(EXIT_FAILURE);
+    }
+
+
+    *window = SDL_CreateWindow(
+        "2048",
+        SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+        530, 640,
+        0
+    );
+    if (window == NULL) {
+        SDL_Log("Unable to create window: %s", SDL_GetError());
+        exit(EXIT_FAILURE);
+    }
+
+
+    *renderer = SDL_CreateRenderer(
+        *window, 
+        -1,
+        SDL_RENDERER_ACCELERATED
+    );
+    if (renderer == NULL) {
+        SDL_Log("Unable to create renderer: %s", SDL_GetError());
+        exit(EXIT_FAILURE);
+    }
+
+
+    if (!(IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG)) {
+        fprintf(stderr, "Unable to initialization IMG: %s\n", IMG_GetError());
+        exit(EXIT_FAILURE);
+    }
+}
+
 
 int 
 main () {
     srand(time(NULL));
+
     CELL *board = create_board();
-    char input[10];
-    int score = 0;
-    move_t last_move = VALID;
+    unsigned int score = 0;
 
+    SDL_Window *window = NULL;
+    SDL_Renderer *renderer = NULL;
+    initialize_sdl(&window, &renderer);
+
+    SDL_Texture **tiles = load_tiles(renderer);
+    SDL_Event event;
+
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+
+    // initial setup
+    insert_two_randomly(board);
+    draw_board(renderer, tiles, board);
+    SDL_RenderPresent(renderer);
+    
+    bool quit = false;
     while (true) {
-        clear_screen();
-        move_cursor_to_pos(0, 0);
 
-        if (last_move == VALID) {
-            insert_two_randomly(board);
-        }
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT) {
+                    quit = true;       
+                    break;
+            }
 
-        putchar('\n');
-        print_board(board);
-        putchar('\n');
+            if (event.type == SDL_KEYDOWN) {
+                switch (event.key.keysym.sym) {
+                case SDLK_UP:
+                    score += apply_gravity_to_board(board, UP);
+                    insert_two_randomly(board);
 
-        printf("    Score: %d\n\n", score);
-          
-        printf(">> ");
-        scanf(" %10s", input);
+                    SDL_RenderClear(renderer);
+                    draw_board(renderer, tiles, board);
+                    SDL_RenderPresent(renderer);
+                    break;
 
-        int c;
-        while ((c = getc(stdin)) != '\n')
-            ;
+                case SDLK_DOWN:
+                    score += apply_gravity_to_board(board, DOWN);
+                    insert_two_randomly(board);
 
-        if (strcmp(input, "up") == 0 || strcmp(input, "u") == 0) {
-            score += apply_gravity_to_board(board, UP);
-        }
-        else if (strcmp(input, "right") == 0 || strcmp(input, "r") == 0) {
-            score += apply_gravity_to_board(board, RIGHT);
-        }
-        else if (strcmp(input, "down") == 0 || strcmp(input, "d") == 0) {
-            score += apply_gravity_to_board(board, DOWN);
-        }
-        else if (strcmp(input, "left") == 0 || strcmp(input, "l") == 0) {
-            score += apply_gravity_to_board(board, LEFT);
-        }
-        else if (strcmp(input, "quit") == 0 || strcmp(input, "q") == 0) {
-            break;
-        }
-        else {
-            putchar('\n');
-            printf("Enter one of the following directions: 'up', 'down', 'left', 'right'.\n");
-            printf("Press 'ENTER' to continue!\n");
-            int c = getc(stdin);
+                    SDL_RenderClear(renderer);
+                    draw_board(renderer, tiles, board);
+                    SDL_RenderPresent(renderer);
+                    break;
+                    
+                case SDLK_LEFT:
+                    score += apply_gravity_to_board(board, LEFT);
+                    insert_two_randomly(board);
 
-            last_move = INVALID;
+                    SDL_RenderClear(renderer);
+                    draw_board(renderer, tiles, board);
+                    SDL_RenderPresent(renderer);
+                    break;
+
+                case SDLK_RIGHT:
+                    score += apply_gravity_to_board(board, RIGHT);
+                    insert_two_randomly(board);
+
+                    SDL_RenderClear(renderer);
+                    draw_board(renderer, tiles, board);
+                    SDL_RenderPresent(renderer);
+                    break;
+                }
+            }
         }
+        if (quit) break;
 
         if (no_more_moves(board)) {
-            putchar('\n');
-            printf("There are no more possible moves!\n");
-            break; // while(true)
+            // you've lost
+            break; 
         }
 
         if (game_won(board)) {
-            putchar('\n');
-            printf("You Won!\n");
-            break; // while(true)
+            // you've won
+            break; 
         }
+
+        SDL_Delay(100);
     }
 
     destroy_board(board);
+    destroy_tiles(tiles);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
+
+    return EXIT_SUCCESS;
 }
 
 
