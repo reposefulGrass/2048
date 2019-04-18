@@ -8,8 +8,12 @@
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+#include <SDL2/SDL_ttf.h>
 
 #include "backend.h"
+
+#define WINDOW_WIDTH    570
+#define WINDOW_HEIGHT   660
 
 SDL_Texture *
 load_texture (SDL_Renderer *renderer, char *path) {
@@ -55,8 +59,34 @@ destroy_tiles (SDL_Texture **tiles) {
 
 
 void
-draw_score (unsigned int score) {
+draw_score (
+    SDL_Renderer *renderer,
+    TTF_Font *font,
+    SDL_Color color,
+    unsigned int score
+) {
+    char score_str[10];
+    memcpy(score_str, "", 10);
+    sprintf(score_str, "%d", score);
+    printf("%s\n", score_str);
 
+    SDL_Surface *text_surface = TTF_RenderText_Solid(font, score_str, color);
+    SDL_Texture *text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
+
+    int text_width = 0, text_height = 0;
+    SDL_QueryTexture(text_texture, NULL, NULL, &text_width, &text_height);
+
+    SDL_Rect dest_rect = {
+        .x = 20,
+        .y = 20,
+        .w = text_width,
+        .h = text_height
+    };
+
+    SDL_RenderCopy(renderer, text_texture, NULL, &dest_rect);     
+
+    SDL_FreeSurface(text_surface);
+    SDL_DestroyTexture(text_texture);
 }
 
 
@@ -75,6 +105,7 @@ draw_board (
 
     SDL_SetRenderDrawColor(renderer, 211, 211, 211, 255);
     SDL_RenderFillRect(renderer, &tile_background);
+
     SDL_SetRenderDrawColor(renderer, 112, 128, 144, 255);
 
     for (int x = 0; x < BOARD_SIZE; x++) {
@@ -114,10 +145,15 @@ initialize_sdl (SDL_Window **window, SDL_Renderer **renderer) {
         exit(EXIT_FAILURE);
     }
 
+    if (TTF_Init() == -1) {
+        printf("Unable to load ttf: %s\n", TTF_GetError());
+        exit(EXIT_FAILURE);
+    }
+
     *window = SDL_CreateWindow(
         "2048",
         SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-        570, 660,
+        WINDOW_WIDTH, WINDOW_HEIGHT,
         0
     );
     if (window == NULL) {
@@ -153,9 +189,17 @@ main () {
     SDL_Renderer *renderer = NULL;
     initialize_sdl(&window, &renderer);
 
+    TTF_Font *font = TTF_OpenFont("./resources/SansSerif.ttf", 60);
+    if (font == NULL) {
+        fprintf(stderr, "Unable to load font 'sansserif': %s\n", TTF_GetError());
+        exit(EXIT_FAILURE);
+    }
+    SDL_Color font_color = {255, 255, 255};
+
     SDL_Texture **tiles = load_tiles(renderer);
     SDL_Event event;
 
+    // Draw background
     SDL_SetRenderDrawColor(renderer, 112, 128, 144, 255);
     SDL_RenderClear(renderer);
 
@@ -166,7 +210,6 @@ main () {
     
     bool quit = false;
     while (true) {
-
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) {
                     quit = true;       
@@ -198,6 +241,7 @@ main () {
 
                 SDL_RenderClear(renderer);
                 draw_board(renderer, tiles, board);
+                draw_score(renderer, font, font_color, score);
                 SDL_RenderPresent(renderer);
             }
         }
@@ -222,6 +266,9 @@ main () {
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
 
+    TTF_CloseFont(font);
+
+    TTF_Quit();
     IMG_Quit();
     SDL_Quit();
 

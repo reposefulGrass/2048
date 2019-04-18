@@ -129,7 +129,10 @@ gravity (CELL *line, direction_t dir, int pos) {
 
 int
 fusion (CELL *line, direction_t dir, int pos) {
-    if (cell_collision(line[pos], line[pos + 1]) && cell_equal(line[pos], line[pos + 1])) {
+    if (
+        cell_collision(line[pos], line[pos + 1]) && 
+        cell_equal(line[pos], line[pos + 1])
+    ) {
         if (dir == UP) {
             return cell_combine(line[pos + 1], line[pos]);
         }
@@ -186,6 +189,8 @@ apply_gravity_to_board (CELL *board, direction_t dir) {
     direction_t line_direction; // The direction to apply to the line
     line_type_t line_type;      // Which line type should we use (col or row) 
 
+    // DOWN refers to the direction where the 0th element is at the top.
+    // UP refers to the direction where the 0th element is at the bottom.
     switch (dir) {
         case UP:    line_direction = DOWN;  line_type = COLUMN; break;
         case DOWN:  line_direction = UP;    line_type = COLUMN; break;

@@ -2,8 +2,8 @@
 SRC = frontend.c backend.c
 NAME = 2048
 
-COMPILE_FLAGS = -Wall -g
-LINK_FLAGS = -lSDL2 -lm -lSDL2_image 
+COMPILE_FLAGS = -g
+LINK_FLAGS = -lSDL2 -lm -lSDL2_image -lSDL2_ttf
 
 all : $(SRC)
 	gcc backend.c -c $(COMPILE_FLAGS) -lm
