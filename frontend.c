@@ -66,9 +66,20 @@ draw_board (
     SDL_Texture **tiles, 
     CELL *board
 ) {
+    SDL_Rect tile_background = {
+        .x = 20,
+        .y = 110,
+        .w = 530,
+        .h = 530
+    };
+
+    SDL_SetRenderDrawColor(renderer, 211, 211, 211, 255);
+    SDL_RenderFillRect(renderer, &tile_background);
+    SDL_SetRenderDrawColor(renderer, 112, 128, 144, 255);
+
     for (int x = 0; x < BOARD_SIZE; x++) {
         for (int y = 0; y < BOARD_SIZE; y++) {
-            int x_pos = x * 170 + 20;
+            int x_pos = x * 170 + 40;
             int y_pos = y * 170 + 130;
 
             SDL_Rect src_area;
@@ -88,6 +99,9 @@ draw_board (
                 SDL_Texture *tile_selected = tiles[((int) log2(*cell)) - 1];
                 SDL_RenderCopy(renderer, tile_selected, &src_area, &dest_area);
             }
+            else {
+
+            }
         }
     }
 }
@@ -103,7 +117,7 @@ initialize_sdl (SDL_Window **window, SDL_Renderer **renderer) {
     *window = SDL_CreateWindow(
         "2048",
         SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-        530, 640,
+        570, 660,
         0
     );
     if (window == NULL) {
@@ -142,7 +156,8 @@ main () {
     SDL_Texture **tiles = load_tiles(renderer);
     SDL_Event event;
 
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_SetRenderDrawColor(renderer, 112, 128, 144, 255);
+    SDL_RenderClear(renderer);
 
     // initial setup
     insert_two_randomly(board);
