@@ -1,7 +1,7 @@
 
 #include <stdbool.h>
 
-#define BOARD_SIZE 3
+#define BOARD_SIZE 4
 #define CELL unsigned int *
 
 typedef enum { ROW, COLUMN } line_type_t; 

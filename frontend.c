@@ -12,8 +12,8 @@
 
 #include "backend.h"
 
-#define WINDOW_WIDTH    570
-#define WINDOW_HEIGHT   660
+#define WINDOW_WIDTH    540
+#define WINDOW_HEIGHT   640
 
 SDL_Texture *
 load_texture (SDL_Renderer *renderer, char *path) {
@@ -40,7 +40,7 @@ load_tiles (SDL_Renderer *renderer) {
     SDL_Texture **tiles = (SDL_Texture **) malloc(sizeof(SDL_Surface *) * 11);
     char generic_path[32];
 
-    for (int i = 0; i < 11; i++) {
+    for (int i = 0; i < 12; i++) {
         snprintf(generic_path, 32, "./resources/tile_%d.bmp", i);
         tiles[i] = load_texture(renderer, generic_path);
     }
@@ -51,7 +51,7 @@ load_tiles (SDL_Renderer *renderer) {
 
 void
 destroy_tiles (SDL_Texture **tiles) {
-    for (int i = 0; i < 11; i++) {
+    for (int i = 0; i < 12; i++) {
         SDL_DestroyTexture(tiles[i]);
     }
     free(tiles);
@@ -99,8 +99,8 @@ draw_board (
     SDL_Rect tile_background = {
         .x = 20,
         .y = 110,
-        .w = 530,
-        .h = 530
+        .w = 500,
+        .h = 510
     };
 
     SDL_SetRenderDrawColor(renderer, 211, 211, 211, 255);
@@ -110,20 +110,20 @@ draw_board (
 
     for (int x = 0; x < BOARD_SIZE; x++) {
         for (int y = 0; y < BOARD_SIZE; y++) {
-            int x_pos = x * 170 + 40;
-            int y_pos = y * 170 + 130;
+            int x_pos = x * 120 + 40;
+            int y_pos = y * 120 + 130;
 
             SDL_Rect src_area;
             src_area.x = 0;
             src_area.y = 0;
-            src_area.w = 150;
-            src_area.h = 150;
+            src_area.w = 100;
+            src_area.h = 100;
 
             SDL_Rect dest_area;
             dest_area.x = x_pos;
             dest_area.y = y_pos;
-            dest_area.w = 150;
-            dest_area.h = 150;
+            dest_area.w = 100;
+            dest_area.h = 100;
 
             CELL cell = board[y * BOARD_SIZE + x];
             if (*cell != 0) {
@@ -131,7 +131,8 @@ draw_board (
                 SDL_RenderCopy(renderer, tile_selected, &src_area, &dest_area);
             }
             else {
-
+                SDL_Texture *tile_selected = tiles[11];
+                SDL_RenderCopy(renderer, tile_selected, &src_area, &dest_area);
             }
         }
     }
@@ -206,6 +207,7 @@ main () {
     // initial setup
     insert_two_randomly(board);
     draw_board(renderer, tiles, board);
+    draw_score(renderer, font, font_color, score);
     SDL_RenderPresent(renderer);
     
     bool quit = false;
