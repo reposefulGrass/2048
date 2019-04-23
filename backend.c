@@ -39,6 +39,16 @@ destroy_board (CELL *board) {
 }
 
 
+bool
+compare_board (CELL *one, CELL *two) {
+    for (int y = 0; y < BOARD_SIZE; y++) {
+        for (int x = 0; x < BOARD_SIZE; x++) {
+            // TODO
+        }
+    }
+}
+
+
 void
 retrieve_line (CELL *board, line_type_t line, unsigned int nth_line, CELL *ret) {
     switch (line) {
@@ -109,16 +119,18 @@ possible_move (CELL *line, direction_t dir) {
 
 
 int
-gravity (CELL *line, direction_t dir, int pos) {
+gravity (CELL *line, direction_t dir, int pos, bool *line_changed) {
     if (dir == UP) {
         int x = pos;
         for (; x < (BOARD_SIZE - 1) && cell_empty(line[x + 1]); x++) {
+            *line_changed = true;
             cell_swap(line[x], line[x + 1]);
         }
     }
     else if (dir == DOWN) {
         int x = pos + 1;
         for (; x > 0 && cell_empty(line[x - 1]); x--) {
+            *line_changed = true;
             cell_swap(line[x], line[x-1]);
         }
     }
@@ -128,11 +140,12 @@ gravity (CELL *line, direction_t dir, int pos) {
 
 
 int
-fusion (CELL *line, direction_t dir, int pos) {
+fusion (CELL *line, direction_t dir, int pos, bool *line_changed) {
     if (
         cell_collision(line[pos], line[pos + 1]) && 
         cell_equal(line[pos], line[pos + 1])
     ) {
+        *line_changed = true;
         if (dir == UP) {
             return cell_combine(line[pos + 1], line[pos]);
         }
@@ -146,19 +159,19 @@ fusion (CELL *line, direction_t dir, int pos) {
 
 
 int
-apply (int (*p_func)(), CELL *line, direction_t dir) {
+apply (int (*p_func)(), CELL *line, direction_t dir, bool *line_changed) {
     int score = 0;
 
     switch (dir) {
         case UP:
             for (int i = BOARD_SIZE - 2; i >= 0; i--) {
-                score += (*p_func)(line, UP, i);
+                score += (*p_func)(line, UP, i, line_changed);
             }
             break;
 
         case DOWN:
             for (int i = 0; i < BOARD_SIZE - 1; i++) {
-                score += (*p_func)(line, DOWN, i);
+                score += (*p_func)(line, DOWN, i, line_changed);
             }
             break;
 
@@ -172,17 +185,24 @@ apply (int (*p_func)(), CELL *line, direction_t dir) {
 
 
 int
-apply_gravity_to_line (CELL *line, direction_t dir) {
-    apply(gravity, line, dir);
-    int score = apply(fusion, line, dir);
-    apply(gravity, line, dir);
+apply_gravity_to_line (CELL *line, direction_t dir, bool *line_changed) {
+    bool changed = false;
+
+    apply(gravity, line, dir, &changed);
+    *line_changed |= changed; 
+
+    int score = apply(fusion, line, dir, &changed);
+    *line_changed |= changed; 
+
+    apply(gravity, line, dir, &changed);
+    *line_changed |= changed; 
 
     return score;
 }
 
 
 int
-apply_gravity_to_board (CELL *board, direction_t dir) {
+apply_gravity_to_board (CELL *board, direction_t dir, bool *board_changed) {
     CELL line[4];
     int score = 0;
  
@@ -200,7 +220,7 @@ apply_gravity_to_board (CELL *board, direction_t dir) {
 
     for (int i = 0; i < BOARD_SIZE; i++) {
         retrieve_line(board, line_type, i, line);
-        score += apply_gravity_to_line(line, line_direction);
+        score += apply_gravity_to_line(line, line_direction, board_changed);
     }
 
     return score;

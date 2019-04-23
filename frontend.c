@@ -218,26 +218,32 @@ main () {
                     break;
             }
 
+            bool board_changed = false;
+
             if (event.type == SDL_KEYDOWN) {
                 switch (event.key.keysym.sym) {
                     case SDLK_UP:
-                        score += apply_gravity_to_board(board, UP);
-                        insert_two_randomly(board);
+                        score += apply_gravity_to_board(board, UP, &board_changed);
+                        if (board_changed == true)
+                            insert_two_randomly(board);
                         break;
 
                     case SDLK_DOWN:
-                        score += apply_gravity_to_board(board, DOWN);
-                        insert_two_randomly(board);
+                        score += apply_gravity_to_board(board, DOWN, &board_changed);
+                        if (board_changed == true)
+                            insert_two_randomly(board);
                         break;
                     
                     case SDLK_LEFT:
-                        score += apply_gravity_to_board(board, LEFT);
-                        insert_two_randomly(board);
+                        score += apply_gravity_to_board(board, LEFT, &board_changed);
+                        if (board_changed == true)
+                            insert_two_randomly(board);
                         break;
 
                     case SDLK_RIGHT:
-                        score += apply_gravity_to_board(board, RIGHT);
-                        insert_two_randomly(board);
+                        score += apply_gravity_to_board(board, RIGHT, &board_changed);
+                        if (board_changed == true)
+                            insert_two_randomly(board);
                         break;
                 }
 
